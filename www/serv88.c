@@ -15,25 +15,18 @@ void commun(int sock){
 	char buf[BUF_SIZE];
 	int len_r;       //受信文字数
 	char *message = "通称「チャチャタウン」、「チャチャ」";
-	char response[BUF_SIZE];
+	char *rn;
 	
-	while((len_r=recv(sock, buf, BUF_SIZE, 0)) > 0){
-		buf[len_r]='\0';
-		
-		printf("%s\n", buf);
-		
-		if(strstr(buf, "\r\n\r\n")){    //改行\r\n\r\n
-			break;
-		}
-	}
-	
-	if(len_r <= 0)
+	do{
+		rn = strstr(buf,"\r\n\r\n");
+	}while(rn == 0);{           //改行　\n,  \r\n
+	if((len_r=recv(sock, buf, BUF_SIZE, 0)) <= 0)
 		DieWithError("recv()failed");
+	buf[len_r]='\0';
+	}
+	printf("%s\n", buf);
 	
-	printf("received HTTP Request.\n");
-	
-	sprintf(response, "HTTP/1.1 200 OK\r\n");
-	if(send(sock, response, strlen(response), 0) != strlen(response))
+	if(send(sock, message, strlen(buf), 0) != strlen(buf))
 		DieWithError("send()sent a message of unexpected bytes");
 }
 
