@@ -1,9 +1,9 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<sys/socket.h>
-#include<unistd.h>
-#include<arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #define BUF_SIZE 256
 
 void DieWithError(char *errorMessage){
@@ -13,18 +13,24 @@ void DieWithError(char *errorMessage){
 
 void commun(int sock){
 	char buf[BUF_SIZE];
-	int len_r;       //óM•¶š”
-	char *message = "’ÊÌuƒ`ƒƒƒ`ƒƒƒ^ƒEƒ“vAuƒ`ƒƒƒ`ƒƒv";
-	char response[BUF_SIZE];
+	char buf_old[BUF_SIZE];
+	char buf2[2*BUF_SIZE];
+	int len_r;	//å—ä¿¡æ–‡å­—æ•°
+	char response[BUF_SIZE];	//ã“ã‚Œã«å…¥ã‚Œã¦è¡¨ç¤º
+	
+	buf_old[0] = '\n';
 	
 	while((len_r=recv(sock, buf, BUF_SIZE, 0)) > 0){
-		buf[len_r]='\0';
+		buf[len_r] = '\0';
+		sprintf(buf2, "%s%s", buf_old, buf);	//buf2ã«buf_oldã¨bufã‚’æ›¸ãè¾¼ã‚€
 		
-		printf("%s\n", buf);
+		//printf("%s\n", buf);
 		
-		if(strstr(buf, "\r\n\r\n")){    //‰üs\r\n\r\n
+		if(strstr(buf2, "\r\n\r\n")){	//æ”¹è¡Œ\r\n\r\n
 			break;
 		}
+		
+		sprintf(buf_old, "%s", buf);	//buf_oldã«bufã‚’æ›¸ãè¾¼ã‚€
 	}
 	
 	if(len_r <= 0)
@@ -33,22 +39,43 @@ void commun(int sock){
 	printf("received HTTP Request.\n");
 	
 	sprintf(response, "HTTP/1.1 200 OK\r\n");
-	if(send(sock, response, strlen(response), 0) != strlen(response))
-		DieWithError("send()sent a message of unexpected bytes");
+    if(send(sock, response, strlen(response), 0) != strlen(response))
+        DieWithError("send() sent a message of unexpected bytes");
+    
+    sprintf(response, "Content-Type: text/html; charset=utf-8\r\n");	//ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã¨æ–‡å­—ã‚³ãƒ¼ãƒ‰ã‚’åˆã‚ã›ã‚‹
+    if(send(sock, response, strlen(response), 0) != strlen(response))
+        DieWithError("send() sent a message of unexpected bytes");
+        
+    sprintf(response, "\r\n");
+    if(send(sock, response, strlen(response), 0) != strlen(response))
+        DieWithError("send() sent a message of unexpected bytes");
+    
+    sprintf(response, "<!DOCTYPE html><html><head><title>");	//ã‚¿ã‚¤ãƒˆãƒ«
+    if(send(sock, response, strlen(response), 0) != strlen(response))
+        DieWithError("send() sent a message of unexpected bytes");
+    
+    sprintf(response, "ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒ—ãƒ­ã‚°ãƒ©ãƒŸãƒ³ã‚°ã®webã‚µã‚¤ãƒˆ");	//ã‚¿ã‚¤ãƒˆãƒ«å
+    if(send(sock, response, strlen(response), 0) != strlen(response))
+        DieWithError("send() sent a message of unexpected bytes");
+    
+    sprintf(response, "</title></head><body>ãƒãƒƒãƒˆãƒ¯ãƒ¼ã‚¯ãƒ€ã‚¤ã‚¹ã‚­</body></html>");	//è¡¨ç¤ºã•ã‚Œã‚‹æ–‡
+    if(send(sock, response, strlen(response), 0) != strlen(response))
+        DieWithError("send() sent a message of unexpected bytes");
 }
 
 int main(int argc, char **argv){
-	int servSock = socket(PF_INET,SOCK_STREAM,0);   //‘Ò‚¿ó‚¯ê—pƒ\ƒPƒbƒg
-	int cliSock;                                    //’ÊMê—pƒ\ƒPƒbƒg
+	int servSock = socket(PF_INET,SOCK_STREAM,0);   //å¾…ã¡å—ã‘å°‚ç”¨ã‚½ã‚±ãƒƒãƒˆ
+	int cliSock;                                    //é€šä¿¡å°‚ç”¨ã‚½ã‚±ãƒƒãƒˆ
 	struct sockaddr_in servAddress;
 	struct sockaddr_in clientAddress;
 	unsigned int szClientAddr;
 	
 	servAddress.sin_family = AF_INET;
 	servAddress.sin_addr.s_addr = htonl(INADDR_ANY);
-	servAddress.sin_port = htons(80);          //ƒ|[ƒg”Ô†
+	servAddress.sin_port = htons(80);          //ãƒãƒ¼ãƒˆç•ªå·
 	bind(servSock,(struct sockaddr *)&servAddress,sizeof(servAddress));
-	listen(servSock,5);    //‡”Ô‘Ò‚¿‚Å‚«‚éƒNƒ‰ƒCƒAƒ“ƒg”  ‚±‚±‚Å‚Í5iOS‚É‚æ‚Á‚Ä‹““®‚ªˆÙ‚È‚éj “¯‚É5ŒÂÚ‘±‚Å‚«‚é‚í‚¯‚Å‚Í‚È‚¢
+	listen(servSock,5);    //é †ç•ªå¾…ã¡ã§ãã‚‹ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆæ•°  ã“ã“ã§ã¯5ï¼ˆOSã«ã‚ˆã£ã¦æŒ™å‹•ãŒç•°ãªã‚‹ï¼‰ åŒæ™‚ã«5å€‹æ¥ç¶šã§ãã‚‹ã‚ã‘ã§ã¯ãªã„
+	
 	while(1){
 		szClientAddr = sizeof(clientAddress);
 		cliSock = accept(servSock,(struct sockaddr *)&clientAddress,&szClientAddr);
