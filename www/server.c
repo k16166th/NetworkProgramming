@@ -4,6 +4,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <regex.h>
+
 #define BUF_SIZE 256
 
 void DieWithError(char *errorMessage){
@@ -15,10 +17,21 @@ void commun(int sock){
 	char buf[BUF_SIZE];
 	char buf_old[BUF_SIZE];
 	char buf2[2*BUF_SIZE];
-	int len_r;	//受信文字数
+	int len_r;                  //受信文字数
 	char response[BUF_SIZE];	//これに入れて表示
 	
-	buf_old[0] = '\n';
+	regex_t regBuf;
+	regmatch_t regMatch[1];		//1個だけ検索結果を取得する
+	const char *pattern = "GET[^\\n]+HTTP";
+	char result[100];
+	char *uri;
+	
+	result[0] = '\0';
+	buf_old[0] = '\0';
+	
+	if(regcomp(&regBuf, pattern, REG_EXTENDED | REG_NEWLINE) != 0){
+		DieWithError("regcomp failed");
+	}
 	
 	while((len_r=recv(sock, buf, BUF_SIZE, 0)) > 0){
 		buf[len_r] = '\0';
@@ -26,12 +39,28 @@ void commun(int sock){
 		
 		//printf("%s\n", buf);
 		
-		if(strstr(buf2, "\r\n\r\n")){	//改行\r\n\r\n
+		if(regexec(&regBuf, buf2, 1, regMatch, 0) != 0){
+			int startIndex = regMatch[0].rm_so;		//開始位置
+			int endIndex = regMatch[0].rm_eo;		//終了位置
+			strncpy(result, buf2 + startIndex, endIndex - startIndex);	//resultに
+		}
+		
+		if(strstr(buf2, "\r\n\r\n")){			//改行\r\n\r\n
 			break;
 		}
 		
-		sprintf(buf_old, "%s", buf);	//buf_oldにbufを書き込む
+		sprintf(buf_old, "%s", buf);			//buf_oldにbufを書き込む
 	}
+	
+	if(result[0] != '\0'){
+		uri = strtok(result, " ");		//resultから空白文字までをuriに代入
+		uri = strtok(NULL, " ");		//その続きから空白文字までをuriに代入
+		printf("%s\n", uri);
+	}else{
+		DieWithError("No URI");
+	}
+	
+	regfree(&regBuf);
 	
 	if(len_r <= 0)
 		DieWithError("recv()failed");
@@ -87,3 +116,4 @@ int main(int argc, char **argv){
 	
 	return 0;
 }
+
