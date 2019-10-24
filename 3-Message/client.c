@@ -14,7 +14,7 @@ void DieWithError(char *);
 int prepare_client_socket(char *, int);
 void my_scanf(char *, int);
 void commun(int);
-void read_until_delim(int, char *, int);
+void read_until_delim(int, char *, char, int);
 
 int main(int argc, char *argv[])
 {
@@ -134,11 +134,18 @@ void commun(int sock)
         printf("番号が確認できませんでした。\n");
         return;
     }
+
+    printf("%lu バイト\n", sizeof(char) * strlen(msg));
+    printf("%lu msg\n", sizeof(msg) * strlen(msg));
+
     //送信処理
     if (send(sock, msg, strlen(msg), 0) != strlen(msg))
         DieWithError("send() sent a message of unexpected bytes");
+
     //受信処理
+
     read_until_delim(sock, msg, '_', BUF_SIZE);
+
     //表示処理
     printf("残高は%d円になりました。\n", atoi(msg));
 }
