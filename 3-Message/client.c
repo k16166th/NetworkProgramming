@@ -14,6 +14,7 @@ void DieWithError(char *);
 int prepare_client_socket(char *, int);
 void my_scanf(char *, int);
 void commun(int);
+void read_until_delim(int, char *, int);
 
 int main(int argc, char *argv[])
 {
@@ -60,6 +61,42 @@ void my_scanf(char *buf, int num_letter)
     getchar();
 }
 
+void read_until_delim(int sock, char *buf, char delimiter, int max_length)
+{
+    int len_r = 0;        // 受信文字数
+    int index_letter = 0; //受信文字数の合計
+
+    while (index_letter < max_length - 1)
+    {
+        //１文字だけ受信
+
+        if ((len_r = recv(sock, buf + index_letter, 1, 0)) <= 0)
+        {
+            //エラー
+            DieWithError("recv() failed");
+        }
+
+        if (buf[index_letter] == delimiter)
+            //区切り文字を受信→ループを抜ける
+            break;
+        else
+            index_letter++;
+    }
+
+    //nullを末尾に追加
+    buf[index_letter] = '\0';
+}
+
+int get_current_balance()
+{
+    return 1000000;
+}
+
+void set_current_balance(int new_balance)
+{
+    return;
+}
+
 void commun(int sock)
 {
     char cmd[2] = "";                    //コマンド入力用
@@ -101,4 +138,7 @@ void commun(int sock)
     if (send(sock, msg, strlen(msg), 0) != strlen(msg))
         DieWithError("send() sent a message of unexpected bytes");
     //受信処理
+    read_until_delim(sock, msg, '_', BUF_SIZE);
+    //表示処理
+    printf("残高は%d円になりました。\n", atoi(msg));
 }

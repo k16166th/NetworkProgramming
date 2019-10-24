@@ -13,7 +13,7 @@
 void DieWithError(char *);
 int prepare_server_socket(int);
 void commun(int);
-void read_until_delim(int, char *, int);
+void read_until_delim(int, char *, char, int);
 int get_current_balance();
 void set_current_balance(int);
 
