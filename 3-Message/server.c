@@ -14,8 +14,15 @@ void DieWithError(char *);
 int prepare_server_socket(int);
 void commun(int);
 void read_until_delim(int, char *, char, int);
+void read_certain_bytes(int, void *, int);
 int get_current_balance();
 void set_current_balance(int);
+
+struct money
+{
+    int deposit;
+    int withdraw;
+};
 
 int main(int argc, char *argv[])
 {
@@ -102,17 +109,33 @@ void set_current_balance(int new_balance)
 
 void commun(int sock)
 {
-    char buf[BUF_SIZE];
-    int balance = get_current_balance();
+    //char buf[BUF_SIZE];                     //通信用バッファ
+    int balance = get_current_balance(); //預金残高
+    struct money msgMoney;               //受信した金額
 
-    read_until_delim(sock, buf, '_', BUF_SIZE);
-    balance += atoi(buf); //預け入れ金額をプラス
-    read_until_delim(sock, buf, '_', BUF_SIZE);
-    balance -= atoi(buf); //引き出し金額をマイナス
+    //引き出し/預入金額を受信
+    read_certain_bytes(sock, &msgMoney, (int)sizeof(msgMoney));
+    balance += msgMoney.deposit;
+    balance -= msgMoney.withdraw;
 
+    //データベースの預金残高を更新
     set_current_balance(balance);
 
-    sprintf(buf, "%d_", balance);
-    if (send(sock, buf, strlen(buf), 0) != strlen(buf))
+    //クライアントへ残高を送信
+    if (send(sock, &balance, sizeof(balance), 0) != sizeof(balance))
         DieWithError("send() sent a message of unexpected bytes");
+}
+
+//特定のバイト数だけ受信する
+void read_certain_bytes(int sock, void *buf, int length)
+{
+    int len_r = 0;
+    int len_sum = 0;
+
+    while (len_sum < length)
+    {
+        if ((len_r = recv(sock, buf + len_sum, length - len_sum, 0)) <= 0)
+            DieWithError("recv() failed");
+        len_sum += len_r;
+    }
 }
